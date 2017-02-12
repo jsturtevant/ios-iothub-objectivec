@@ -15,6 +15,8 @@
 
 @implementation ViewController
 
+CocoaMQTT *mqtt;
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
@@ -36,10 +38,33 @@
     [mqtt connect];
     
     NSLog(@"connect");
+    
+    
 }
 
 -(void)mqtt:(CocoaMQTT *)mqtt didConnectAck:(enum CocoaMQTTConnAck)ack{
+    NSLog(@"didConnectAck: %hhu",ack);
     
+    if (ack == CocoaMQTTConnAckAccept) {
+        CocoaMQTTMessage *message = [CocoaMQTTMessage alloc];
+        message.topic = @"devices/workshopdevice/messages/events/";
+        message.payload = [self getPayload:@"test"];
+        
+        [mqtt publish: message];
+        //[mqtt subscribe "devices/workshopdevice/messages/devicebound/#", qos: CocoaMQTTQOS.qos1]
+    }
+}
+
+-(NSArray<NSNumber *> *)getPayload:(NSString *)message {
+    const char *chars = [message UTF8String];
+    NSMutableArray<NSNumber *> *payload = [[NSMutableArray<NSNumber *> alloc] init];
+    for (int i=0; i < [message length]; i++) {
+        
+        NSNumber *num = [[NSNumber alloc] initWithInt: chars[i]];
+        [payload addObject:num];
+    }
+    
+    return payload;
 }
 
 -(void)mqtt:(CocoaMQTT *)mqtt didConnect:(NSString *)host port:(NSInteger)port{
