@@ -51,7 +51,7 @@ CocoaMQTT *mqtt;
         message.payload = [self getPayload:@"test"];
         
         [mqtt publish: message];
-        //[mqtt subscribe "devices/workshopdevice/messages/devicebound/#", qos: CocoaMQTTQOS.qos1]
+        [mqtt subscribe: @"devices/workshopdevice/messages/devicebound/#" qos:CocoaMQTTQOSQos1];
     }
 }
 
@@ -78,7 +78,9 @@ CocoaMQTT *mqtt;
 -(void)mqtt:(CocoaMQTT *)mqtt didPublishMessage:(CocoaMQTTMessage *)message id:(uint16_t)id{}
 
 -(void)mqtt:(CocoaMQTT *)mqtt didReceive:(SecTrustRef)trust completionHandler:(void (^)(BOOL))completionHandler{}
--(void)mqtt:(CocoaMQTT *)mqtt didReceiveMessage:(CocoaMQTTMessage *)message id:(uint16_t)id{}
+-(void)mqtt:(CocoaMQTT *)mqtt didReceiveMessage:(CocoaMQTTMessage *)message id:(uint16_t)id{
+    NSLog(@"didReceivedMessage: %@", message.string);
+}
 -(void)mqtt:(CocoaMQTT *)mqtt didSubscribeTopic:(NSString *)topic{}
 -(void)mqtt:(CocoaMQTT *)mqtt didUnsubscribeTopic:(NSString *)topic{}
 -(void)mqttDidDisconnect:(CocoaMQTT *)mqtt withError:(NSError *)err{}
