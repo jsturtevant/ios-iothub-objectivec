@@ -27,6 +27,30 @@ CocoaMQTT *mqtt;
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
+- (void)PostUrl {
+    NSString *post = [NSString stringWithFormat:@"{'json': 'property'}"];
+    NSData *postData = [post dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
+    NSString *postLength = [NSString stringWithFormat:@"%lu",(unsigned long)[postData length]];
+    
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+    [request setURL:[NSURL URLWithString:@"https://someurl.com"]];
+    [request setHTTPMethod:@"POST"];
+    [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request setHTTPBody:postData];
+    
+    NSURLConnection *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
+    if(conn) {
+        NSLog(@"Connection Successful");
+    } else {
+        NSLog(@"Connection could not be made");
+    }
+}
+
+- (IBAction)register:(id)sender {
+    [self PostUrl];
+}
+
 - (IBAction)connect:(id)sender {
     CocoaMQTT *mqtt = [[CocoaMQTT alloc]  initWithClientID:@"<devicename>" host:@"<hub-name>.azure-devices.net" port:8883];
     mqtt.username = @"<yourhubname>.azure-devices.net/<devicename>";
@@ -38,8 +62,6 @@ CocoaMQTT *mqtt;
     [mqtt connect];
     
     NSLog(@"connect");
-    
-    
 }
 
 -(void)mqtt:(CocoaMQTT *)mqtt didConnectAck:(enum CocoaMQTTConnAck)ack{
