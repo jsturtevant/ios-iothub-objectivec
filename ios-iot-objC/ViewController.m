@@ -28,23 +28,39 @@ CocoaMQTT *mqtt;
     // Dispose of any resources that can be recreated.
 }
 - (void)PostUrl {
-    NSString *post = [NSString stringWithFormat:@"{'json': 'property'}"];
-    NSData *postData = [post dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
-    NSString *postLength = [NSString stringWithFormat:@"%lu",(unsigned long)[postData length]];
+    NSURL *url = [NSURL URLWithString:@"https://url.com"];
+    NSDictionary *dictionary = @{ @"name" : @"yourname" };
+    NSData *JSONData = [NSJSONSerialization dataWithJSONObject:dictionary
+                                                       options:0
+                                                         error:nil];
+
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    request.HTTPMethod = @"POST";
+    request.HTTPBody = JSONData;
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setURL:[NSURL URLWithString:@"https://someurl.com"]];
-    [request setHTTPMethod:@"POST"];
-    [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
-    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    [request setHTTPBody:postData];
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request
+                                                                 completionHandler:^(NSData *data,
+                                                                                     NSURLResponse *response,
+                                                                                     NSError *error)
+    {
+        if (!error)
+        {
+            NSLog(@"Status code: %li", (long)((NSHTTPURLResponse *)response).statusCode);
+            NSString * text = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
+            NSLog(@"%@", text);
+            
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            NSLog(@"%@", json);
+        }
+        else
+        {
+            NSLog(@"Error: %@", error.localizedDescription);
+        }
+    }];
     
-    NSURLConnection *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
-    if(conn) {
-        NSLog(@"Connection Successful");
-    } else {
-        NSLog(@"Connection could not be made");
-    }
+    // Start the task.
+    [task resume];
 }
 
 - (IBAction)register:(id)sender {
