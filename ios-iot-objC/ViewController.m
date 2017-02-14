@@ -63,6 +63,15 @@ CocoaMQTT *mqtt;
     [task resume];
 }
 
+- (IBAction)sendMessage:(id)sender {
+    CocoaMQTTMessage *message = [CocoaMQTTMessage alloc];
+    message.topic = @"devices/workshopdevice/messages/events/";
+    message.payload = [self getPayload:@"{ 'DeviceId': 'workshopdevice', 'Message': 'hello'}"];
+    
+    [mqtt publish: message];
+}
+
+
 - (IBAction)register:(id)sender {
     [self PostUrl];
 }
@@ -84,11 +93,7 @@ CocoaMQTT *mqtt;
     NSLog(@"didConnectAck: %hhu",ack);
     
     if (ack == CocoaMQTTConnAckAccept) {
-        CocoaMQTTMessage *message = [CocoaMQTTMessage alloc];
-        message.topic = @"devices/workshopdevice/messages/events/";
-        message.payload = [self getPayload:@"test"];
         
-        [mqtt publish: message];
         [mqtt subscribe: @"devices/workshopdevice/messages/devicebound/#" qos:CocoaMQTTQOSQos1];
     }
 }
