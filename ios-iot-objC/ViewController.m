@@ -16,6 +16,12 @@
 @implementation ViewController
 
 CocoaMQTT *mqtt;
+NSString *sasToken;
+
+NSString *iotHubName = @"<yourhubname>";
+NSString *deviceName = @"<yourdevicename>";
+NSString *azureFunctionName = @"<yourazureregistrationfunction>";
+NSString *azureFunctionCode = @"<yourazurefunctioncode>";
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -27,18 +33,23 @@ CocoaMQTT *mqtt;
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-- (void)PostUrl {
-    NSURL *url = [NSURL URLWithString:@"https://url.com"];
-    NSDictionary *dictionary = @{ @"name" : @"yourname" };
+
+- (void)GetAuth {
+    NSString *urlPath = [NSString stringWithFormat:@"https://%@.azurewebsites.net/api/registerdevice?code=%@", azureFunctionName, azureFunctionCode];
+    
+    NSURL *url = [NSURL URLWithString:urlPath];
+    NSDictionary *dictionary = @{ @"name" : deviceName };
+    
+    
     NSData *JSONData = [NSJSONSerialization dataWithJSONObject:dictionary
                                                        options:0
                                                          error:nil];
-
+   
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
     request.HTTPBody = JSONData;
     [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    
+        
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request
                                                                  completionHandler:^(NSData *data,
                                                                                      NSURLResponse *response,
@@ -49,9 +60,14 @@ CocoaMQTT *mqtt;
             NSLog(@"Status code: %li", (long)((NSHTTPURLResponse *)response).statusCode);
             NSString * text = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
             NSLog(@"%@", text);
+
             
             NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
             NSLog(@"%@", json);
+            sasToken = json[@"SASToken"];
+            
+            NSLog(@"%@", sasToken);
+            [self Connect];
         }
         else
         {
@@ -59,27 +75,31 @@ CocoaMQTT *mqtt;
         }
     }];
     
-    // Start the task.
     [task resume];
 }
 
 - (IBAction)sendMessage:(id)sender {
     CocoaMQTTMessage *message = [CocoaMQTTMessage alloc];
-    message.topic = @"devices/workshopdevice/messages/events/";
-    message.payload = [self getPayload:@"{ 'DeviceId': 'workshopdevice', 'Message': 'hello'}"];
+    
+    NSString *topic = [NSString stringWithFormat:@"devices/%@/messages/events/", deviceName];
+    message.topic = topic;
+    
+    NSString *payload = [NSString stringWithFormat:@"{'DeviceId': '%@', 'Message':'testme'}", deviceName];
+    message.payload = [self getPayload:payload];
     
     [mqtt publish: message];
+    
+    NSLog(@"send");
 }
 
-
-- (IBAction)register:(id)sender {
-    [self PostUrl];
-}
-
-- (IBAction)connect:(id)sender {
-    CocoaMQTT *mqtt = [[CocoaMQTT alloc]  initWithClientID:@"<devicename>" host:@"<hub-name>.azure-devices.net" port:8883];
-    mqtt.username = @"<yourhubname>.azure-devices.net/<devicename>";
-    mqtt.password = @"SharedAccessSignature <yoursas>";
+-(void) Connect {
+    
+    NSString *host = [NSString stringWithFormat:@"%@.azure-devices.net", iotHubName];
+    NSString *username = [NSString stringWithFormat:@"%@.azure-devices.net/%@", iotHubName, deviceName];
+    
+    mqtt = [[CocoaMQTT alloc]  initWithClientID:deviceName host:host port:8883];
+    mqtt.username = username;
+    mqtt.password = sasToken;
     mqtt.keepAlive = 60;
     mqtt.enableSSL = true;
     mqtt.delegate = self;
@@ -89,12 +109,23 @@ CocoaMQTT *mqtt;
     NSLog(@"connect");
 }
 
+- (IBAction)register:(id)sender {
+    [self GetAuth];
+}
+
+- (IBAction)connect:(id)sender {
+    [self GetAuth];
+}
+
 -(void)mqtt:(CocoaMQTT *)mqtt didConnectAck:(enum CocoaMQTTConnAck)ack{
     NSLog(@"didConnectAck: %hhu",ack);
     
     if (ack == CocoaMQTTConnAckAccept) {
-        
-        [mqtt subscribe: @"devices/workshopdevice/messages/devicebound/#" qos:CocoaMQTTQOSQos1];
+        NSString *subscription = [NSString stringWithFormat:@"devices/%@/messages/devicebound/#", deviceName];
+        [mqtt subscribe: subscription qos:CocoaMQTTQOSQos1];
+    }
+    else{
+        NSLog(@"did not successfully connect");
     }
 }
 
