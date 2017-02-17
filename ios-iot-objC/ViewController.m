@@ -49,7 +49,7 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     request.HTTPMethod = @"POST";
     request.HTTPBody = JSONData;
     [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-        
+    
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request
                                                                  completionHandler:^(NSData *data,
                                                                                      NSURLResponse *response,
@@ -78,22 +78,16 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     [task resume];
 }
 
-- (IBAction)sendMessage:(id)sender {
-    CocoaMQTTMessage *message = [CocoaMQTTMessage alloc];
-    
+- (IBAction)sendMessage:(id)sender { 
     NSString *topic = [NSString stringWithFormat:@"devices/%@/messages/events/", deviceName];
-    message.topic = topic;
-    
     NSString *payload = [NSString stringWithFormat:@"{'DeviceId': '%@', 'Message':'testme'}", deviceName];
-    message.payload = [self getPayload:payload];
-    
-    [mqtt publish: message];
+
+    [mqtt publish:topic withString: payload qos:CocoaMQTTQOSQos1 retained:false dup:false];
     
     NSLog(@"send");
 }
 
 -(void) Connect {
-    
     NSString *host = [NSString stringWithFormat:@"%@.azure-devices.net", iotHubName];
     NSString *username = [NSString stringWithFormat:@"%@.azure-devices.net/%@", iotHubName, deviceName];
     
@@ -105,8 +99,7 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     mqtt.delegate = self;
     
     [mqtt connect];
-    
-    NSLog(@"connect");
+    NSLog(@"connect sent");
 }
 
 - (IBAction)register:(id)sender {
@@ -127,18 +120,6 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     else{
         NSLog(@"did not successfully connect");
     }
-}
-
--(NSArray<NSNumber *> *)getPayload:(NSString *)message {
-    const char *chars = [message UTF8String];
-    NSMutableArray<NSNumber *> *payload = [[NSMutableArray<NSNumber *> alloc] init];
-    for (int i=0; i < [message length]; i++) {
-        
-        NSNumber *num = [[NSNumber alloc] initWithInt: chars[i]];
-        [payload addObject:num];
-    }
-    
-    return payload;
 }
 
 -(void)mqtt:(CocoaMQTT *)mqtt didConnect:(NSString *)host port:(NSInteger)port{
