@@ -34,7 +34,17 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     // Dispose of any resources that can be recreated.
 }
 
-- (void)GetAuth {
+- (void)Connect {
+    if (sasToken == (id)[NSNull null] || sasToken.length == 0 ){
+        [self CallAuthService];
+        return;
+    }
+
+    //other wise we have a valid sastoken and call connect
+    [self ConnectToHub];
+}
+
+-(void) CallAuthService {
     NSString *urlPath = [NSString stringWithFormat:@"https://%@.azurewebsites.net/api/registerdevice?code=%@", azureFunctionName, azureFunctionCode];
     
     NSURL *url = [NSURL URLWithString:urlPath];
@@ -44,7 +54,7 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     NSData *JSONData = [NSJSONSerialization dataWithJSONObject:dictionary
                                                        options:0
                                                          error:nil];
-   
+    
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
     request.HTTPBody = JSONData;
@@ -54,31 +64,31 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
                                                                  completionHandler:^(NSData *data,
                                                                                      NSURLResponse *response,
                                                                                      NSError *error)
-    {
-        if (!error)
-        {
-            NSLog(@"Status code: %li", (long)((NSHTTPURLResponse *)response).statusCode);
-            NSString * text = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
-            NSLog(@"%@", text);
-
-            
-            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            NSLog(@"%@", json);
-            sasToken = json[@"SASToken"];
-            
-            NSLog(@"%@", sasToken);
-            [self Connect];
-        }
-        else
-        {
-            NSLog(@"Error: %@", error.localizedDescription);
-        }
-    }];
+                                  {
+                                      if (!error)
+                                      {
+                                          NSLog(@"Status code: %li", (long)((NSHTTPURLResponse *)response).statusCode);
+                                          NSString * text = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
+                                          NSLog(@"%@", text);
+                                          
+                                          
+                                          NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                                          NSLog(@"%@", json);
+                                          sasToken = json[@"SASToken"];
+                                          
+                                          NSLog(@"%@", sasToken);
+                                          [self ConnectToHub];
+                                      }
+                                      else
+                                      {
+                                          NSLog(@"Error: %@", error.localizedDescription);
+                                      }
+                                  }];
     
     [task resume];
 }
 
-- (IBAction)sendMessage:(id)sender { 
+- (IBAction)sendMessage:(id)sender {
     NSString *topic = [NSString stringWithFormat:@"devices/%@/messages/events/", deviceName];
     NSString *payload = [NSString stringWithFormat:@"{'DeviceId': '%@', 'Message':'testme'}", deviceName];
 
@@ -87,7 +97,7 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     NSLog(@"send");
 }
 
--(void) Connect {
+-(void) ConnectToHub {
     NSString *host = [NSString stringWithFormat:@"%@.azure-devices.net", iotHubName];
     NSString *username = [NSString stringWithFormat:@"%@.azure-devices.net/%@", iotHubName, deviceName];
     
@@ -102,12 +112,8 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
     NSLog(@"connect sent");
 }
 
-- (IBAction)register:(id)sender {
-    [self GetAuth];
-}
-
 - (IBAction)connect:(id)sender {
-    [self GetAuth];
+    [self Connect];
 }
 
 -(void)mqtt:(CocoaMQTT *)mqtt didConnectAck:(enum CocoaMQTTConnAck)ack{
