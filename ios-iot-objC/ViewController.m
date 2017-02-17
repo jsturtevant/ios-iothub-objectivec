@@ -22,6 +22,7 @@ NSString *iotHubName = @"<yourhubname>";
 NSString *deviceName = @"<yourdevicename>";
 NSString *azureFunctionName = @"<yourazureregistrationfunction>";
 NSString *azureFunctionCode = @"<yourazurefunctioncode>";
+NSString *defualtPayload = @"{ 'Message': 'Hello!'}";
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -90,9 +91,8 @@ NSString *azureFunctionCode = @"<yourazurefunctioncode>";
 
 - (IBAction)sendMessage:(id)sender {
     NSString *topic = [NSString stringWithFormat:@"devices/%@/messages/events/", deviceName];
-    NSString *payload = [NSString stringWithFormat:@"{'DeviceId': '%@', 'Message':'testme'}", deviceName];
 
-    [mqtt publish:topic withString: payload qos:CocoaMQTTQOSQos1 retained:false dup:false];
+    [mqtt publish:topic withString: defualtPayload qos:CocoaMQTTQOSQos1 retained:false dup:false];
     
     NSLog(@"send");
 }
